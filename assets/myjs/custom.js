@@ -781,6 +781,60 @@ $(document).on('click', ".select_pos_item", function (e) {
     }
 });
 
+
+$(document).on('click', ".select_pos_service", function (e) {
+    var pid = $(this).attr('data-pid');
+    // var stock = accounting.unformat($(this).attr('data-stock'), accounting.settings.number.decimal);
+    var flag = true;
+    var discount = $(this).attr('data-discount');
+    // var custom_discount= accounting.unformat($('#custom_discount').val(), accounting.settings.number.decimal);
+    // if (custom_discount > 0) discount = accounting.formatNumber(custom_discount);
+
+    $('.sdIn').each(function () {
+        if (pid == $(this).val()) {
+
+            var pi = $(this).attr('id');
+            var arr = pi.split('-');
+            pi = arr[1];
+            $('#discount-' + pi).val(discount);
+            var stotal = accounting.unformat($('#amount-' + pi).val(), accounting.settings.number.decimal) + 1;
+
+            // if (stotal <= stock) {
+            //     $('#amount-' + pi).val(accounting.formatNumber(stotal));
+            //     $('#search_bar').val('').focus();
+            // } else {
+            //     $('#stock_alert').modal('toggle');
+            // }
+            rowTotal(pi);
+            billUpyog();
+            $('#amount-' + pi).focus();
+            flag = false;
+        }
+    });
+    var t_r = $(this).attr('data-tax');
+    if ($("#taxformat option:selected").attr('data-trate')) {
+
+        var t_r = $("#taxformat option:selected").attr('data-trate');
+    }
+    if (flag) {
+        var ganak = $('#ganak').val();
+        var cvalue = parseInt(ganak);
+        var functionNum = "'" + cvalue + "'";
+        count = $('#saman-row div').length;
+        var data = '<tr id="ppid-' + cvalue + '" class="mb-1"><td colspan="7" ><input type="text" class="form-control text-center p-mobile" name="service_name[]" placeholder="Enter Service name or Code" id="servicename-' + cvalue + '" value="' + $(this).attr('data-name') + '-' + $(this).attr('data-pcode') + '"><input type="hidden" id="alert-' + cvalue + '" value="' + $(this).attr('data-stock') + '"  name="alert[]"></td></tr><tr><td><input type="text" inputmode="numeric" class="form-control p-mobile p-width req amnt" name="service_qty[]" id="amount-' + cvalue + '" onkeypress="return isNumber(event)" onkeyup="rowTotal(' + functionNum + '), billUpyog()" autocomplete="off" value="1" ></td> <td><input type="text" class="form-control p-width p-mobile req prc" name="service_price[]"  inputmode="numeric" id="price-' + cvalue + '" onkeypress="return isNumber(event)" onkeyup="rowTotal(' + functionNum + '), billUpyog()" autocomplete="off"  value="' + $(this).attr('data-price') + '"></td><td> <input type="text" class="form-control p-mobile p-width vat" inputmode="numeric" name="service_tax[]" id="vat-' + cvalue + '" onkeypress="return isNumber(event)" onkeyup="rowTotal(' + functionNum + '), billUpyog()" autocomplete="off"  value="' + t_r + '"></td>  <td><input type="text" class="form-control p-width p-mobile discount pos_w" name="service_discount[]" inputmode="numeric" onkeypress="return isNumber(event)" id="discount-' + cvalue + '" onkeyup="rowTotal(' + functionNum + '), billUpyog()" autocomplete="off"  value="' + discount + '" inputmode="numeric"></td> <td><span class="currenty">' + currency + '</span> <strong><span class=\'ttlText\' id="result-' + cvalue + '">0</span></strong></td> <td class="text-center"><button type="button" data-rowid="' + cvalue + '" class="btn btn-danger removeItem" title="Remove" > <i class="fa fa-minus-square"></i> </button> </td><input type="hidden" name="taxa[]" id="taxa-' + cvalue + '" value="0"><input type="hidden" name="disca[]" id="disca-' + cvalue + '" value="0"><input type="hidden" class="ttInput" name="service_subtotal[]" id="total-' + cvalue + '" value="0"> <input type="hidden" class="sdIn" name="sid[]" id="sid-' + cvalue + '" value="' + $(this).attr('data-pid') + '"></tr>';
+
+        //ajax request
+        // $('#saman-row').append(data);
+        $('#pos_items').append(data);
+        rowTotal(cvalue);
+        billUpyog();
+        $('#ganak').val(cvalue + 1);
+        $('#amount-' + cvalue).focus();
+    }
+});
+
+
+
 $(document).on('click', ".v2_select_pos_item", function (e) {
     var pid = $(this).attr('data-pid');
     var stock =  accounting.unformat($(this).attr('data-stock'), accounting.settings.number.decimal);

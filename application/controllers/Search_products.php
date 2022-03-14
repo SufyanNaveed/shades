@@ -235,6 +235,84 @@ class Search_products extends CI_Controller
 
     }
 
+    public function services_search()
+    {
+
+        $out = '';
+        $this->load->model('plugins_model', 'plugins');
+        $billing_settings = $this->plugins->universal_api(67);
+        $name = $this->input->post('name', true);
+        $cid = $this->input->post('cid', true);
+        // $wid = $this->input->post('wid', true);
+        $qw = '';
+        // if ($wid > 0) {
+        //     $qw .= "(geopos_products.warehouse='$wid') AND ";
+        // }
+        if ($cid > 0) {
+            $qw .= "(geopos_services.pcat='$cid') AND ";
+        }
+        $join = '';
+        // if ($this->aauth->get_user()->loc) {
+        //     // $join = 'LEFT JOIN geopos_warehouse ON geopos_warehouse.id=geopos_products.warehouse';
+        //     // if (BDATA) $qw .= '(geopos_warehouse.loc=' . $this->aauth->get_user()->loc . ' OR geopos_warehouse.loc=0) AND '; else $qw .= '(geopos_warehouse.loc=' . $this->aauth->get_user()->loc . ' ) AND ';
+        // } elseif (!BDATA) {
+        //     $join = 'LEFT JOIN geopos_warehouse ON geopos_warehouse.id=geopos_products.warehouse';
+        //     $qw .= '(geopos_warehouse.loc=0) AND ';
+        // }
+
+        $e = '';
+        // if ($billing_settings['key1'] == 1) {
+        //     // $e .= ',geopos_product_serials.serial';
+        //     // $join .= 'LEFT JOIN geopos_product_serials ON geopos_product_serials.product_id=geopos_products.pid ';
+        //     $qw .= '(geopos_product_serials.status=0) AND  ';
+        // }
+
+
+        $bar = '';
+        if (is_numeric($name)) {
+            $b = array('-', '-', '-');
+            $c = array(3, 4, 11);
+            $barcode = $name;
+            for ($i = count($c) - 1; $i >= 0; $i--) {
+                $barcode = substr_replace($barcode, $b[$i], $c[$i], 0);
+            }
+
+            $bar = " OR (geopos_services.barcode LIKE '" . (substr($barcode, 0, -1)) . "%' OR geopos_products.barcode LIKE '" . $name . "%')";
+        }
+        // if ($billing_settings['key1'] == 2) {
+
+        //     $query = "SELECT geopos_products.*,geopos_product_serials.serial FROM geopos_product_serials  LEFT JOIN geopos_products  ON geopos_products.pid=geopos_product_serials.product_id $join WHERE " . $qw . "geopos_product_serials.serial LIKE '" . strtoupper($name) . "%'  AND (geopos_products.qty>0) LIMIT 16";
+
+
+        // } else {
+            $query = "SELECT geopos_services.* $e FROM geopos_services $join WHERE " . $qw . "(UPPER(geopos_services.service_name) LIKE '%" . strtoupper($name) . "%' $bar OR geopos_services.service_code LIKE '" . strtoupper($name) . "%') LIMIT 16";
+
+        // }
+
+
+        $query = $this->db->query($query);
+
+        $result = $query->result_array();
+        $i = 0;
+        echo '<div class="row match-height">';
+        foreach ($result as $row) {
+            $service_price = $row['service_price'];
+            $out .= '    <div class="col-3 border mb-1 "><div class="rounded">
+                                 <a   id="posp' . $i . '"  class="select_pos_service btn btn-outline-light-blue round"  data-name="' . $row['service_name'] . '"  data-price="' . amountExchange_s($service_price, 0, $this->aauth->get_user()->loc) . '"  data-tax="' . amountFormat_general($row['taxrate']) . '"  data-discount="' . amountFormat_general($row['disrate']) . '"   data-pcode="' . $row['service_code'] . '"   data-pid="' . $row['pid'] . '">
+                                        <img class="round"
+                                             src="' . base_url('userfiles/product/' . $row['image']) . '"  style="max-height: 100%;max-width: 100%">
+                                        <div class="text-xs-center text">
+                                            <small style="white-space: pre-wrap;">' . $row['service_name'] . '</small>                                            
+                                        </div></a>
+                                </div></div>';
+            $i++;
+            //   if ($i % 4 == 0) $out .= '</div><div class="row">';
+        }
+
+        echo $out;
+
+    }
+
     public function pos_search()
     {
 

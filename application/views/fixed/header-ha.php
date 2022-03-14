@@ -680,6 +680,20 @@
 
                             </ul>
                         </li>
+                        <li class="dropdown dropdown-submenu" data-menu="dropdown-submenu"><a
+                                    class="dropdown-item dropdown-toggle" href="#" data-toggle="dropdown"><i
+                                        class="ft-list"></i> <?php echo $this->lang->line('Services Manager') ?></a>
+                            <ul class="dropdown-menu">
+                                <li data-menu=""><a class="dropdown-item" href="<?= base_url(); ?>services/add"
+                                                    data-toggle="dropdown"> <?php echo $this->lang->line('New Service'); ?></a>
+                                </li>
+                                <li data-menu=""><a class="dropdown-item" href="<?php echo base_url(); ?>services"
+                                                    data-toggle="dropdown"><?= $this->lang->line('Manage Services'); ?></a>
+                                </li>
+
+
+                            </ul>
+                        </li>
                         <li data-menu=""><a class="dropdown-item"
                                             href="<?php echo base_url(); ?>productcategory"
                                             data-toggle="dropdown"><i

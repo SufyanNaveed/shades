@@ -192,10 +192,12 @@ class Pos_invoices extends CI_Controller
     //action
     public function action()
     {
-
+        //        echo json_encode($_POST);
+        //        exit();
+        error_reporting(E_ALL ^ E_WARNING);
         $ptype = $this->input->post('type');
         $coupon = $this->input->post('coupon');
-        $notes = $this->input->post('noteprintinvoices', true);
+        $notes = $this->input->post('notes', true);
         $coupon_amount = 0;
         $coupon_n = '';
         $customer_id = $this->input->post('customer_id');
@@ -280,21 +282,87 @@ class Pos_invoices extends CI_Controller
                 }
             }
 
-
+            
             $data = array('tid' => $invocieno, 'invoicedate' => $bill_date, 'invoiceduedate' => $bill_due_date, 'subtotal' => $subtotal, 'shipping' => $shipping, 'ship_tax' => $shipping_tax, 'ship_tax_type' => $ship_taxtype, 'discount_rate' => $disc_val, 'total' => $total, 'pmethod' => $pmethod, 'notes' => $notes, 'status' => $status, 'csd' => $customer_id, 'eid' => $emp, 'pamnt' => 0, 'taxstatus' => $tax, 'discstatus' => $discstatus, 'format_discount' => $discountFormat, 'refer' => $refer, 'term' => $pterms, 'multi' => $currency, 'i_class' => 1, 'loc' => $this->aauth->get_user()->loc);
 
-
+            // echo '<pre>'; print_r($data);exit;
+            
             if ($this->db->insert('geopos_invoices', $data)) {
 
                 $invocieno_n = $invocieno;
                 $invocieno2 = $invocieno;
                 $invocieno = $this->db->insert_id();
 
+                $sid = $this->input->post('sid');
+                $servicelist = array();
+                $serindex = 0;
+                $itc_s = 0;
+
+
+                // service handling
+                $service_id = $this->input->post('sid');
+                $service_name = $this->input->post('service_name', true);
+                $service_qty = $this->input->post('service_qty');
+                $service_price = $this->input->post('service_price');
+                $service_tax = $this->input->post('service_tax');
+                $service_discount = $this->input->post('service_discount');
+                $service_subtotal = $this->input->post('service_subtotal');
+                // print_r($service_name);exit;
+                if(!empty($service_id))
+                {
+
+                    $total_discount_s = '';
+                    foreach ($service_id as $key => $value) {
+
+
+                    $total_discount_s += numberClean(@$service_discount[$key]);
+                    $total_tax += numberClean($service_tax[$key]);
+
+                    $data = array(
+                        'tid' => $invocieno,
+                        'sid' => $service_id[$key],
+                        'product' => $service_name[$key],
+                        //'code' => $product_hsn[$key],
+                        'qty' => numberClean($service_qty[$key]),
+                        'price' => rev_amountExchange_s($service_price[$key], $currency, $this->aauth->get_user()->loc),
+                        'tax' => numberClean($service_tax[$key]),
+                        'discount' => numberClean($service_discount[$key]),
+                        'subtotal' => rev_amountExchange_s($service_subtotal[$key], $currency, $this->aauth->get_user()->loc),
+                        'totaltax' => rev_amountExchange_s($service_tax[$key], $currency, $this->aauth->get_user()->loc),
+                        'totaldiscount' => rev_amountExchange_s($service_discount[$key], $currency, $this->aauth->get_user()->loc),
+                        'product_des' => $service_name[$key],
+                        'i_class' => 1,
+                        'unit' => ''
+                    );
+
+                    $flag = true;
+                    $servicelist[$serindex] = $data;
+                    $i++;
+                    $serindex++;
+                    $amt_s = numberClean($service_qty[$key]);
+                    $itc_s += $amt_s;
+                }
+            }
+
+                if ($serindex > 0) {
+                    $this->db->insert_batch('geopos_invoice_items', $servicelist);
+                    $this->db->set(array('discount' => rev_amountExchange_s(amountFormat_general($total_discount), $currency, $this->aauth->get_user()->loc), 'tax' => rev_amountExchange_s(amountFormat_general($total_tax), $currency, $this->aauth->get_user()->loc), 'items' => $itc_s));
+                    $this->db->where('id', $invocieno);
+                    $this->db->update('geopos_invoices');
+                }
+                // else {
+                //                    echo json_encode(array('status' => 'Error', 'message' =>
+                //                        "Please choose product from product list. Go to Item manager section if you have not added the products."));
+                //                    $transok = false;
+                //                }
+
+                // service handling end
 
                 $pid = $this->input->post('pid');
                 $productlist = array();
                 $prodindex = 0;
                 $itc = 0;
+
                 $product_id = $this->input->post('pid');
                 $product_name1 = $this->input->post('product_name', true);
                 $product_qty = $this->input->post('product_qty');
@@ -311,8 +379,6 @@ class Pos_invoices extends CI_Controller
                 $product_serial = $this->input->post('serial');
                 if (is_array($pid)) {
                     foreach ($pid as $key => $value) {
-
-
                         $total_discount += numberClean(@$ptotal_disc[$key]);
                         $total_tax += numberClean($ptotal_tax[$key]);
 
@@ -328,7 +394,7 @@ class Pos_invoices extends CI_Controller
                             'subtotal' => rev_amountExchange_s($product_subtotal[$key], $currency, $this->aauth->get_user()->loc),
                             'totaltax' => rev_amountExchange_s($ptotal_tax[$key], $currency, $this->aauth->get_user()->loc),
                             'totaldiscount' => rev_amountExchange_s($ptotal_disc[$key], $currency, $this->aauth->get_user()->loc),
-                            'product_des' => $product_des[$key],
+                            'product_des' => count($product_des) > 0 ? $product_des[$key] : '',
                             'i_class' => 1,
                             'unit' => $product_unit[$key],
                             'serial' => $product_serial[$key]
@@ -357,7 +423,6 @@ class Pos_invoices extends CI_Controller
 
                         $itc += $amt;
 
-
                     }
 
                 }
@@ -374,7 +439,7 @@ class Pos_invoices extends CI_Controller
                         $this->db->update('geopos_product_serials');
                     }
 
-                } else {
+                } else if( $prodindex <= 0 && $serindex <= 0){
                     echo json_encode(array('status' => 'Error', 'message' =>
                         "Please choose product from product list. Go to Item manager section if you have not added the products."));
                     $transok = false;
@@ -388,8 +453,12 @@ class Pos_invoices extends CI_Controller
                     $p_tid = 'thermal_p';
                     if ($printer['val2'] == 'server') $p_tid = 'thermal_server';
 
-                    echo json_encode(array('status' => 'Success', 'message' =>
-                        $this->lang->line('Invoice Success') . "<a target='_blank' href='thermal_pdf?id=$invocieno' class='btn btn-blue btn-lg'><span class='fa fa-ticket' aria-hidden='true'></span> PDF  </a> &nbsp; &nbsp;   <a id='$p_tid' data-ptid='$invocieno' data-url='" . $printer['val3'] . "'  class='btn btn-info btn-lg white'><span class='fa fa-ticket' aria-hidden='true'></span> " . $this->lang->line('Thermal Printer') . "  </a> &nbsp; &nbsp; <a target='_blank' href='printinvoice?id=$invocieno' class='btn btn-blue btn-lg'><span class='fa fa-print' aria-hidden='true'></span> A4  </a>&nbsp; &nbsp; <a target='_blank' href='printinvoice_eng_arabic?id=$invocieno' class='btn btn-blue btn-lg'><span class='fa fa-print' aria-hidden='true'></span> A4 Arabic </a> &nbsp; &nbsp; <a href='view?id=$invocieno' class='btn btn-purple btn-lg'><span class='fa fa-eye' aria-hidden='true'></span> " . $this->lang->line('View') . "  </a> &nbsp; &nbsp; <a href='$link' class='btn btn-blue-grey btn-lg'><span class='fa fa-globe' aria-hidden='true'></span> " . $this->lang->line('Public View') . " </a> &nbsp;<a href='create' class='btn btn-flickr btn-lg'><span class='fa fa-plus-circle' aria-hidden='true'></span> " . $this->lang->line('Create') . "  </a>"));
+                    if($this->session->userdata('s_role') == 'r_6'){
+                        echo json_encode(array('status' => 'Success', 'message' => $this->lang->line('Invoice Success') . "         <a href='".base_url()."pos_invoices/create' class='btn btn-blue btn-lg'> Go Back </a>"));
+                    }else{
+                        echo json_encode(array('status' => 'Success', 'message' =>
+                        $this->lang->line('Invoice Success') . " <a target='_blank' href='thermal_pdf?id=$invocieno' class='btn btn-blue btn-lg'><span class='fa fa-ticket' aria-hidden='true'></span> PDF  </a> &nbsp; &nbsp;   <a id='$p_tid' data-ptid='$invocieno' data-url='" . $printer['val3'] . "'  class='btn btn-info btn-lg white'><span class='fa fa-ticket' aria-hidden='true'></span> " . $this->lang->line('Thermal Printer') . "  </a> &nbsp; &nbsp; <a target='_blank' href='printinvoice?id=$invocieno' class='btn btn-blue btn-lg'><span class='fa fa-print' aria-hidden='true'></span> A4  </a> &nbsp; &nbsp; <a href='view?id=$invocieno' class='btn btn-purple btn-lg'><span class='fa fa-eye' aria-hidden='true'></span> " . $this->lang->line('View') . "  </a> &nbsp; &nbsp; <a href='$link' class='btn btn-blue-grey btn-lg'><span class='fa fa-globe' aria-hidden='true'></span> " . $this->lang->line('Public View') . " </a> &nbsp;<a href='create' class='btn btn-flickr btn-lg'><span class='fa fa-plus-circle' aria-hidden='true'></span> " . $this->lang->line('Create') . "  </a>"));
+                    }
                 }
                 $this->load->model('billing_model', 'billing');
                 $tnote = '#' . $invocieno_n . '-' . $pmethod;
@@ -628,8 +697,9 @@ class Pos_invoices extends CI_Controller
             } else {
                 $this->db->trans_rollback();
             }
-        } else {
-//draft
+        } else
+            {
+            //draft
             $p_amount = 0;
             $pmethod = $this->input->post('p_method', true);
 
@@ -676,6 +746,53 @@ class Pos_invoices extends CI_Controller
                 $prodindex = 0;
                 $itc = 0;
 
+                // service handling
+                $service_id = $this->input->post('sid');
+                $service_name = $this->input->post('service_name', true);
+                $service_qty = $this->input->post('service_qty');
+                $service_price = $this->input->post('service_price');
+                $service_tax = $this->input->post('service_tax');
+                $service_discount = $this->input->post('service_discount');
+                $service_subtotal = $this->input->post('service_subtotal');
+
+                foreach ($service_id as $key => $value) {
+
+
+                    $total_discount += numberClean(@$service_discount[$key]);
+                    $total_tax += numberClean($service_tax[$key]);
+
+                    $data = array(
+                        'tid' => $invocieno,
+                        'pid' => $service_id[$key],
+                        'product' => $service_name[$key],
+                        //'code' => $product_hsn[$key],
+                        'qty' => numberClean($service_qty[$key]),
+                        'price' => rev_amountExchange_s($service_price[$key], $currency, $this->aauth->get_user()->loc),
+                        'tax' => numberClean($service_tax[$key]),
+                        'discount' => numberClean($service_discount[$key]),
+                        'subtotal' => rev_amountExchange_s($service_subtotal[$key], $currency, $this->aauth->get_user()->loc),
+                        'totaltax' => rev_amountExchange_s($service_tax[$key], $currency, $this->aauth->get_user()->loc),
+                        'totaldiscount' => rev_amountExchange_s($service_discount[$key], $currency, $this->aauth->get_user()->loc),
+                        'product_des' => $service_name[$key],
+                        'i_class' => 1,
+                        'unit' => ''
+                    );
+
+                    $flag = true;
+                    $productlist[$prodindex] = $data;
+                    $i++;
+                    $prodindex++;
+                    $amt = numberClean($service_qty[$key]);
+                    $itc += $amt;
+                }
+
+
+
+                // service handling end
+
+
+
+
                 $product_id = $this->input->post('pid');
                 $product_name1 = $this->input->post('product_name', true);
                 $product_qty = $this->input->post('product_qty');
@@ -720,6 +837,9 @@ class Pos_invoices extends CI_Controller
                     $amt = numberClean($product_qty[$key]);
                     $itc += $amt;
                 }
+                //echo print_r($productlist);
+                // echo json_encode($productlist);
+                // exit();
 
                 if ($prodindex > 0) {
                     $this->db->insert_batch('geopos_draft_items', $productlist);
@@ -1602,8 +1722,8 @@ class Pos_invoices extends CI_Controller
         $online_pay = $this->billing->online_pay_settings();
         if ($online_pay['enable'] == 1) {
             $token = hash_hmac('ripemd160', $tid, $this->config->item('encryption_key'));
+            
             $data['qrc'] = 'pos_' . date('Y_m_d_H_i_s') . '_.png';
-            // $qrCode = new QrCode(base_url('billing/view?id=' . $tid . '&itype=inv&token=' . $token));
             $loc = location($data['invoice']['loc']);
             $generatedString = GenerateQrCode::fromArray([
                 new Seller($loc['cname']),   
@@ -1614,9 +1734,7 @@ class Pos_invoices extends CI_Controller
             ])->toBase64();
 
             $qrCode = new QrCode($generatedString);
-            //header('Content-Type: '.$qrCode->getContentType());
-            //echo $qrCode->writeString();
-            $qrCode->writeFile(FCPATH . 'userfiles/pos_temp/' . $data['qrc']);
+            $qrCode->writeFile(FCPATH . 'userfiles/pos_temp/' . $data['qrc']); 
         }
         // boost the memory limit if it's low ;)
         ini_set('memory_limit', '64M');
