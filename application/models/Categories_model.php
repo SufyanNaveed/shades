@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Geo POS -  Accounting,  Invoicing  and CRM Application
  * Copyright (c) Rajesh Dukiya. All Rights Reserved
@@ -16,7 +17,7 @@
  * ***********************************************************************
  */
 
-defined('BASEPATH') OR exit('No direct script access allowed');
+defined('BASEPATH') or exit('No direct script access allowed');
 
 class Categories_model extends CI_Model
 {
@@ -36,19 +37,13 @@ class Categories_model extends CI_Model
     public function warehouse_list()
     {
         $where = '';
-
-
         if (!BDATA) $where = "WHERE  (loc=0) ";
         if ($this->aauth->get_user()->loc) {
             $where = "WHERE  (loc=" . $this->aauth->get_user()->loc . " ) ";
             if (BDATA) $where = "WHERE  (loc=" . $this->aauth->get_user()->loc . " OR geopos_warehouse.loc=0) ";
         }
 
-
-        $query = $this->db->query("SELECT id,title
-FROM geopos_warehouse $where 
-
-ORDER BY id DESC");
+        $query = $this->db->query("SELECT id,title FROM geopos_warehouse $where ORDER BY id DESC");
         return $query->result_array();
     }
 
@@ -62,6 +57,20 @@ ORDER BY id DESC");
         }
 
         $query = $this->db->query("SELECT c.*,p.pc,p.salessum,p.worthsum,p.qty FROM geopos_product_cat AS c LEFT JOIN ( SELECT geopos_products.pcat,COUNT(geopos_products.pid) AS pc,SUM(geopos_products.product_price*geopos_products.qty) AS salessum, SUM(geopos_products.fproduct_price*geopos_products.qty) AS worthsum,SUM(geopos_products.qty) AS qty FROM geopos_products LEFT JOIN geopos_warehouse ON geopos_products.warehouse=geopos_warehouse.id  $whr GROUP BY geopos_products.pcat ) AS p ON c.id=p.pcat WHERE c.c_type=0");
+        return $query->result_array();
+    }
+
+    public function service_category_stock()
+    {
+        $whr = '';
+        // if (!BDATA) $whr = "WHERE  (geopos_warehouse.loc=0) ";
+        // if ($this->aauth->get_user()->loc) {
+        //     $whr = "WHERE  (geopos_warehouse.loc=" . $this->aauth->get_user()->loc . " ) ";
+        //     if (BDATA) $whr = "WHERE  (geopos_warehouse.loc=" . $this->aauth->get_user()->loc . " OR geopos_warehouse.loc=0) ";
+        // }
+
+        // $query = $this->db->query("SELECT c.*,p.pc,p.salessum,p.worthsum,p.qty FROM geopos_service_cat AS c LEFT JOIN ( SELECT geopos_services.pcat,COUNT(geopos_services.pid) AS pc,SUM(geopos_products.product_price*geopos_products.qty) AS salessum, SUM(geopos_products.fproduct_price*geopos_products.qty) AS worthsum,SUM(geopos_products.qty) AS qty FROM geopos_products LEFT JOIN geopos_warehouse ON geopos_products.warehouse=geopos_warehouse.id  $whr GROUP BY geopos_products.pcat ) AS p ON c.id=p.pcat WHERE c.c_type=0");
+        $query = $this->db->query("SELECT * FROM geopos_service_cat AS c;");
         return $query->result_array();
     }
 
@@ -124,12 +133,38 @@ p.pid='$id' $qj ");
         if ($this->db->insert('geopos_product_cat', $data)) {
             $this->aauth->applog("[Category Created] $cat_name ID " . $this->db->insert_id(), $this->aauth->get_user()->username);
             echo json_encode(array('status' => 'Success', 'message' =>
-                $this->lang->line('ADDED') . " $url"));
+            $this->lang->line('ADDED') . " $url"));
         } else {
             echo json_encode(array('status' => 'Error', 'message' =>
-                $this->lang->line('ERROR')));
+            $this->lang->line('ERROR')));
+        }
+    }
+
+    public function addServiceCat($cat_name, $cat_desc, $cat_type = 0, $cat_rel = 0)
+    {
+        if (!$cat_type) $cat_type = 0;
+        if (!$cat_rel) $cat_rel = 0;
+        $data = array(
+            'title' => $cat_name,
+            'extra' => $cat_desc,
+            'c_type' => $cat_type,
+            'rel_id' => $cat_rel
+        );
+
+        if ($cat_type) {
+            $url = "<a href='" . base_url('servicecategory/add_sub') . "' class='btn btn-blue btn-lg'><span class='fa fa-plus-circle' aria-hidden='true'></span>  </a> <a href='" . base_url('servicecategory/view?id=' . $cat_rel) . "' class='btn btn-grey-blue btn-lg'><span class='fa fa-list-alt' aria-hidden='true'></span>  </a>";
+        } else {
+            $url = "<a href='" . base_url('servicecategory/add') . "' class='btn btn-blue btn-lg'><span class='fa fa-plus-circle' aria-hidden='true'></span>  </a> <a href='" . base_url('servicecategory') . "' class='btn btn-grey-blue btn-lg'><span class='fa fa-list-alt' aria-hidden='true'></span>  </a>";
         }
 
+        if ($this->db->insert('geopos_service_cat', $data)) {
+            $this->aauth->applog("[Category Created] $cat_name ID " . $this->db->insert_id(), $this->aauth->get_user()->username);
+            echo json_encode(array('status' => 'Success', 'message' =>
+            $this->lang->line('ADDED') . " $url"));
+        } else {
+            echo json_encode(array('status' => 'Error', 'message' =>
+            $this->lang->line('ERROR')));
+        }
     }
 
     public function addwarehouse($cat_name, $cat_desc, $lid)
@@ -142,19 +177,18 @@ p.pid='$id' $qj ");
 
         if ($this->db->insert('geopos_warehouse', $data)) {
             $this->aauth->applog("[WareHouse Created] $cat_name ID " . $this->db->insert_id(), $this->aauth->get_user()->username);
-               $url = "<a href='" . base_url('productcategory/addwarehouse') . "' class='btn btn-blue btn-lg'><span class='fa fa-plus-circle' aria-hidden='true'></span>  </a> <a href='" . base_url('productcategory/warehouse') . "' class='btn btn-grey-blue btn-lg'><span class='fa fa-list-alt' aria-hidden='true'></span>  </a>";
+            $url = "<a href='" . base_url('servicecategory/addwarehouse') . "' class='btn btn-blue btn-lg'><span class='fa fa-plus-circle' aria-hidden='true'></span>  </a> <a href='" . base_url('productcategory/warehouse') . "' class='btn btn-grey-blue btn-lg'><span class='fa fa-list-alt' aria-hidden='true'></span>  </a>";
             echo json_encode(array('status' => 'Success', 'message' =>
-                $this->lang->line('ADDED') . $url));
+            $this->lang->line('ADDED') . $url));
         } else {
             echo json_encode(array('status' => 'Error', 'message' =>
-                $this->lang->line('ERROR')));
+            $this->lang->line('ERROR')));
         }
-
     }
 
     public function edit($catid, $product_cat_name, $product_cat_desc, $cat_type, $cat_rel, $old_cat_type)
     {
-         if (!$cat_rel) $cat_rel = 0;
+        if (!$cat_rel) $cat_rel = 0;
         $data = array(
             'title' => $product_cat_name,
             'extra' => $product_cat_desc,
@@ -163,22 +197,21 @@ p.pid='$id' $qj ");
         );
         $this->db->set($data);
         $this->db->where('id', $catid);
-        if ($this->db->update('geopos_product_cat')) {
+        if ($this->db->update('geopos_service_cat')) {
             if ($cat_type != $old_cat_type && $cat_type && $cat_type) {
                 $data = array('pcat' => $cat_rel);
                 $this->db->set($data);
                 $this->db->where('sub_id', $catid);
-                $this->db->update('geopos_products');
+                $this->db->update('geopos_services');
             }
             $this->aauth->applog("[Category Edited] $product_cat_name ID " . $catid, $this->aauth->get_user()->username);
             echo json_encode(array('status' => 'Success', 'message' =>
-                $this->lang->line('UPDATED')));
+            $this->lang->line('UPDATED')));
         } else {
             echo json_encode(array('status' => 'Error', 'message' =>
-                $this->lang->line('ERROR')));
+            $this->lang->line('ERROR')));
         }
-
-    }
+}
 
     public function editwarehouse($catid, $product_cat_name, $product_cat_desc, $lid)
     {
@@ -195,12 +228,11 @@ p.pid='$id' $qj ");
         if ($this->db->update('geopos_warehouse')) {
             $this->aauth->applog("[Warehouse Edited] $product_cat_name ID " . $catid, $this->aauth->get_user()->username);
             echo json_encode(array('status' => 'Success', 'message' =>
-                $this->lang->line('UPDATED')));
+            $this->lang->line('UPDATED')));
         } else {
             echo json_encode(array('status' => 'Error', 'message' =>
-                $this->lang->line('ERROR')));
+            $this->lang->line('ERROR')));
         }
-
     }
 
     public function sub_cat($id = 0)
@@ -214,7 +246,7 @@ p.pid='$id' $qj ");
         return $query->row_array();
     }
 
-       public function sub_cat_curr($id = 0)
+    public function sub_cat_curr($id = 0)
     {
         $this->db->select('*');
         $this->db->from('geopos_product_cat');
@@ -234,6 +266,4 @@ p.pid='$id' $qj ");
         $query = $this->db->get();
         return $query->result_array();
     }
-
-
 }

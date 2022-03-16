@@ -117,6 +117,41 @@ $(document).ready(function () {
     });
 
 
+    $('#ser_categories').change(function () {
+        // var whr = $('#warehouses option:selected').val();
+        var cat = $('#ser_categories option:selected').val();
+        // alert(cat)
+        $.ajax({
+            url: baseurl + 'search_products/services_search',
+            method: 'POST',
+            data: 'cid=' + cat + '&' + crsf_token + '=' + crsf_hash,
+            beforeSend: function () {
+                $("#customer-box").css("background", "#FFF url(" + baseurl + "assets/custom/load-ring.gif) no-repeat 165px");
+            },
+            success: function (data) {
+
+                $("#pos_service").html(data);
+
+            }
+        });
+    });
+
+    $('#service_search_bar').keyup(function () {
+        // var whr = $('#warehouses option:selected').val();
+        var cat = $('#ser_categories option:selected').val();
+        $.ajax({
+            type: "POST",
+            url: baseurl + 'search_products/services_search',
+            data: 'name=' + $(this).val() + '&cid=' + cat + '&' + crsf_token + '=' + crsf_hash,
+            beforeSend: function () {
+                $("#customer-box").css("background", "#FFF url(" + baseurl + "assets/custom/load-ring.gif) no-repeat 165px");
+            },
+            success: function (data) {
+                $("#pos_service").html(data);
+            }
+        });
+    });
+    
     $('#search_bar').keyup(function () {
         var whr = $('#warehouses option:selected').val();
         var cat = $('#categories option:selected').val();

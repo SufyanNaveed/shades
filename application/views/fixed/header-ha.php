@@ -701,10 +701,17 @@
                             </a>
                         </li>
                         <li data-menu=""><a class="dropdown-item"
+                                            href="<?php echo base_url(); ?>servicecategory"
+                                            data-toggle="dropdown"><i
+                                        class="ft-umbrella"></i><?php echo $this->lang->line('Service Categories'); ?>
+                            </a>
+                        </li>
+                        <li data-menu=""><a class="dropdown-item"
                                             href="<?php echo base_url(); ?>productcategory/warehouse"
                                             data-toggle="dropdown"><i
                                         class="ft-sliders"></i><?php echo $this->lang->line('Warehouses'); ?></a>
                         </li>
+                        
                         <li data-menu=""><a class="dropdown-item"
                                             href="<?php echo base_url(); ?>products/stock_transfer"
                                             data-toggle="dropdown"><i
